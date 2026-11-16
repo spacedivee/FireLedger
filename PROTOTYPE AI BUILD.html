@@ -334,8 +334,8 @@ button:focus-visible,summary:focus-visible,a:focus-visible,input:focus-visible,s
 <main class="map-shell">
 <div class="views only2d" id="views"><section class="view" id="view2d"><div class="view-label"><span class="view-number">01</span><div><b>Geographic view</b><span>Observation footprints</span></div><button class="view-fit quiet" data-fit="2d" aria-label="Reset 2D camera">Fit</button></div><div class="zoom-buttons"><button data-zoom="2d" data-direction="in" aria-label="Zoom in 2D">+</button><button data-zoom="2d" data-direction="out" aria-label="Zoom out 2D">−</button></div><div class="canvas-wrap"><canvas id="base2d" class="base"></canvas><canvas id="gl2d" class="plot" aria-label="2D map. Drag to pan, scroll to zoom, click a disk or link." tabindex="0"></canvas><canvas id="overlay2d" class="overlay" aria-hidden="true"></canvas></div><div class="view-foot">Drag to pan · scroll to zoom · click to inspect</div></section><section class="view" id="view3d"><div class="view-label"><span class="view-number">02</span><div><b>Space–time view</b><span>Height represents time, not altitude</span></div><button class="view-fit quiet" data-fit="3d" aria-label="Reset 3D camera">Fit</button></div><div class="zoom-buttons"><button data-zoom="3d" data-direction="in" aria-label="Zoom in 3D">+</button><button data-zoom="3d" data-direction="out" aria-label="Zoom out 3D">−</button></div><div class="canvas-wrap"><canvas id="base3d" class="base"></canvas><canvas id="gl3d" class="plot" aria-label="3D space-time view. Drag to rotate, shift-drag to pan, scroll to zoom, click to inspect." tabindex="0"></canvas><canvas id="overlay3d" class="overlay" aria-hidden="true"></canvas></div><div class="time-scale-control">
 <label for="timeAxisScale">Time scale <output id="timeAxisScaleValue" for="timeAxisScale">1 h / px</output></label>
-<input type="range" id="timeAxisScale" min="0" max="12" value="5" step="1">
-<div class="time-scale-ends"><span>Stretch · 10 min</span><span>Flatten · 12 h</span></div>
+<input type="range" id="timeAxisScale" min="0" max="15" value="8" step="1">
+<div class="time-scale-ends"><span>Stretch · 1 min</span><span>Flatten · 12 h</span></div>
 </div><div class="view-foot">Drag to rotate · Shift/right-drag to pan · scroll to zoom</div></section><div id="tooltip" role="status"></div></div>
 <details class="map-panel map-tools" id="mapTools"><summary>Data &amp; layers</summary><aside class="controls">
 <section class="firms-prep" aria-labelledby="firmsTitle">
@@ -435,9 +435,9 @@ button:focus-visible,summary:focus-visible,a:focus-visible,input:focus-visible,s
 <details class="map-shortcuts" id="mapControlsGuide">
  <summary>Map controls</summary>
  <dl>
-  <dt>Zoom</dt><dd>Scroll or click + / −</dd>
+  <dt>Zoom</dt><dd>Scroll or click + / −. In 3D, zoom keeps the selected time under the cursor.</dd>
   <dt>Pan</dt><dd>Drag in 2D. Shift-drag or right-drag in 3D.</dd>
-  <dt>Rotate or tilt</dt><dd>Drag in 3D</dd>
+  <dt>Rotate or tilt</dt><dd>Drag in 3D. Drag down to look almost level with the map.</dd>
   <dt>Inspect</dt><dd>Click a disk or link. Click a cluster to zoom in.</dd>
   <dt>Fit or clear</dt><dd><kbd>F</kbd> fits the focused map. <kbd>Esc</kbd> clears the selection.</dd>
   <dt>Thermal heat</dt><dd>Click a numbered badge or Shift-click a heat cell to inspect repeat detections.</dd>
@@ -2315,7 +2315,6 @@ const dateTextExact=t=>isoTime(t).replace('T',' ');
 const predictionEnabled=()=>$('predictionToggle').checked;
 const activeSelectedTube=()=>selected?.kind==='edge'&&predictionEnabled()?
  predictionModel?.linkAt(selected.index,minimumScore):null;
-const TUBE_RING=Array.from({length:20},(_,i)=>[Math.cos(i*Math.PI/10),Math.sin(i*Math.PI/10)]);
 const MESH_LIMIT=100;
 
 // Project all rings onto the same longitude branch as their middle slice.
@@ -2327,13 +2326,38 @@ function sliceWorld(section,anchor){
  return {x:x+Math.round((anchor-x)/worldWidth)*worldWidth,y,z:timeZ(section.time),radius};
 }
 function volumeTimes(tube){return [Math.max(start,tube.start),Math.min(end,tube.end)]}
-function volumeSections(tube,slice){
+function volumeSections(tube){
  const [lo,hi]=volumeTimes(tube),mid=tube.midpoint;
  const times=[lo];
  if(mid>lo&&mid<hi)times.push(mid);
- if(slice&&slice.time>lo&&slice.time<hi&&slice.time!==mid)times.push(slice.time);
  if(hi>lo)times.push(hi);
- return times.sort((a,b)=>a-b).map(t=>slice?.time===t?slice:FireInterpolation.slice(tube,t));
+ return times.map(t=>FireInterpolation.slice(tube,t));
+}
+
+// The projected end disks have the same ellipticity. Undo that vertical
+// compression to find the external tangents, then project the shell back.
+function traceTubeSection(shell,rails,a,b,slope){
+ const dx=b.x-a.x,dy=(b.y-a.y)/slope;
+ const distance=Math.hypot(dx,dy),difference=a.r-b.r;
+ if(distance<=Math.abs(difference)){
+  const rim=difference>=0?a:b;
+  shell.moveTo(rim.x+rim.r,rim.y);
+  shell.ellipse(rim.x,rim.y,rim.r,rim.r*slope,0,0,-2*Math.PI,true);
+  shell.closePath();
+  return;
+ }
+ const direction=Math.atan2(dy,dx),spread=Math.acos(difference/distance);
+ const near=direction+spread,far=direction-spread;
+ const point=(rim,angle)=>[rim.x+rim.r*Math.cos(angle),rim.y+rim.r*slope*Math.sin(angle)];
+ const aNear=point(a,near),bNear=point(b,near),aFar=point(a,far),bFar=point(b,far);
+ shell.moveTo(...aNear);
+ shell.lineTo(...bNear);
+ shell.ellipse(b.x,b.y,b.r,b.r*slope,0,near,far,true);
+ shell.lineTo(...aFar);
+ shell.ellipse(a.x,a.y,a.r,a.r*slope,0,far,near,true);
+ shell.closePath();
+ rails.moveTo(...aNear);rails.lineTo(...bNear);
+ rails.moveTo(...aFar);rails.lineTo(...bFar);
 }
 function spreadFrame(rings,tube){
  const x0=rings[0].x,y0=rings[0].y,x1=rings.at(-1).x,y1=rings.at(-1).y;
@@ -2484,8 +2508,10 @@ function visibleMapGroup(node, ids) {
   return node.filtered;
 }
 
-const TIME_AXIS_MINUTES = [10,15,20,30,45,60,90,120,180,240,360,480,720];
-let timeAxisStep = 5;
+const TIME_AXIS_MINUTES = [1,2,5,10,15,20,30,45,60,90,120,180,240,360,480,720];
+let timeAxisStep = TIME_AXIS_MINUTES.indexOf(60);
+// Leave a small angle above the horizon so ground picking stays invertible.
+const MAX_VIEW_TILT = 88 * Math.PI / 180;
 function bindTimeAxis() {
  const control = $('timeAxisScale');
  control.oninput = () => {
@@ -3535,13 +3561,14 @@ class View {
  get pixelsPerUnit(){return this.scale*this.height/2}
  get timePixels(){return this.kind==='3d' ? (end-start)/60/TIME_AXIS_MINUTES[timeAxisStep] : 0}
  get timeScreenUnits(){return this.pixelsPerUnit ? this.timePixels/this.pixelsPerUnit : 0}
+ get zoomTimeOffset(){return measuring()?0:this.timePixels*timeZ(cutoff)}
  zoomAt(x,y,factor){
   if(!this.height)return;
   const old=this.pixelsPerUnit;
   this.scale=this.limitScale(this.scale*factor);
   const change=1/old-1/this.pixelsPerUnit;
   this.pan[0]+=(x-this.width/2)*change;
-  this.pan[1]-=(y-this.height/2)*change;
+  this.pan[1]-=(y-this.height/2+this.zoomTimeOffset)*change;
   if(change)this.invalidateCamera();
  }
  viewPoint(p){
@@ -3727,8 +3754,11 @@ class View {
    }
   }
   if (line !== null && (disk === null || lineDistance < diskDistance)) return {kind: 'edge', index: line};
-  for(const {id,ax,ay,bx,by,r} of predictionHits){
-   if(bx!==undefined&&segmentDistance(x,y,ax,ay,bx,by)<=r)return {kind:'edge',index:id};
+  const ctx=this.overlayCtx;
+  for(const {id,ax,ay,bx,by,r,shell} of predictionHits){
+   if(bx===undefined)continue;
+   const inShell=ctx.isPointInPath(shell,x*this.overlay.width/this.width,y*this.overlay.height/this.height);
+   if(inShell||segmentDistance(x,y,ax,ay,bx,by)<=r)return {kind:'edge',index:id};
   }
   const point = disk ?? foot;
   return point === null ? null : {kind: 'node', index: point};
@@ -3825,15 +3855,15 @@ class View {
    if(camera.inside(x,y,Math.max(4,r),Math.max(4,r*camera.slope)))visible.push({x,y,r,id:section.edgeIndex,focused});
    return ring.x;
   };
-  let chosenSlice;
+  let chosenSlice,chosenAnchor;
   if(chosen){
    const slice=FireInterpolation.slice(chosen,cutoff);
    chosenSlice=slice;
    const near=slice??FireInterpolation.slice(chosen,chosen.midpoint);
    const x=sliceWorld(near,anchor).x;
-   if(is3d)this.drawVolume(c,camera,chosen,slice,x,true,hits);
+   if(is3d)chosenAnchor=x;
    else{
-    const ends=volumeSections(chosen,null).map(s=>{
+    const ends=volumeSections(chosen).map(s=>{
      const p=sliceWorld(s,x);
      return camera.project(p.x,p.y,p.z);
     });
@@ -3850,8 +3880,9 @@ class View {
    const x=record(section,focused);
    if(!is3d||focused||meshes>=MESH_LIMIT)continue;
    const tube=predictionModel.linkAt(section.edgeIndex,minimumScore);
-   if(tube&&this.drawVolume(c,camera,tube,section,x,false,hits))meshes++;
+   if(tube&&this.drawVolume(c,camera,tube,x,false,hits))meshes++;
   }
+  if(chosen&&is3d)this.drawVolume(c,camera,chosen,chosenAnchor,true,hits);
   const trace=(x,y,r)=>{
    c.moveTo(x+r,y);
    c.ellipse(x,y,r,r*camera.slope,0,0,Math.PI*2);
@@ -3862,7 +3893,7 @@ class View {
     if(ring.focused!==focused||ring.r<1.6)continue;
     trace(ring.x,ring.y,ring.r);
    }
-   c.fillStyle=focused?'#69e4fad9':'#69e4fa9e';
+   c.fillStyle=focused?'#69e4fac2':is3d?'#69e4fa66':'#69e4fa9e';
    c.fill();
    c.strokeStyle='#165e7a';
    c.lineWidth=focused?2:1.15;
@@ -3880,67 +3911,63 @@ class View {
   }
   this.predictionHits=hits;
  }
- drawVolume(c,camera,tube,section,anchor,focused,hits){
-  const rings=volumeSections(tube,section).map(s=>{
+ drawVolume(c,camera,tube,anchor,focused,hits){
+  const rings=volumeSections(tube).map(s=>{
    const p=sliceWorld(s,anchor),[x,y]=camera.project(p.x,p.y,p.z);
-   return {p,x,y,r:p.radius*camera.scale};
+   return {x,y,r:p.radius*camera.scale,time:s.time};
   });
   if(rings.length<2||rings.every(({x,r})=>x+r<0)||rings.every(({x,r})=>x-r>camera.width)||
      rings.every(({y,r})=>y+r<0)||rings.every(({y,r})=>y-r>camera.height))return false;
   const [a,b]=[rings[0],rings.at(-1)];
   if(Math.max(Math.hypot(b.x-a.x,b.y-a.y),...rings.map(r=>r.r))<4)return false;
-  const depth=({x,y,z})=>z*this.timeScreenUnits-
-    Math.sin(this.tilt)*(Math.sin(this.yaw)*x+Math.cos(this.yaw)*y);
-  c.strokeStyle=focused?'#5f4697':'#8067a5a1';
-  c.lineWidth=focused?1.2:.75;
-  if(Math.max(...rings.map(r=>r.r))<1.4){
-   c.beginPath();c.moveTo(a.x,a.y);c.lineTo(b.x,b.y);c.stroke();
-  }else{
-   const mesh=rings.map(({p})=>TUBE_RING.map(([ux,uy])=>{
-    const w={x:p.x+p.radius*ux,y:p.y+p.radius*uy,z:p.z};
-    return {xy:camera.project(w.x,w.y,w.z),depth:depth(w)};
-   }));
-   const faces=[],sides=TUBE_RING.length;
-   for(let j=1;j<mesh.length;j++){
-    const [prev,next]=[mesh[j-1],mesh[j]];
-    for(let i=0;i<sides;i++){
-     const k=(i+1)%sides,v=[prev[i],prev[k],next[k],next[i]];
-     faces.push({v,depth:v.reduce((sum,p)=>sum+p.depth,0)/4,shade:Math.cos((i+.5)*Math.PI*2/sides+this.yaw)});
-    }
-   }
-   for(const v of [mesh[0],mesh.at(-1)])faces.push({v,depth:v.reduce((sum,p)=>sum+p.depth,0)/sides,shade:.65});
-   faces.sort((a,b)=>a.depth-b.depth);
-   for(const {v,shade} of faces){
-    c.beginPath();c.moveTo(...v[0].xy);
-    for(let i=1;i<v.length;i++)c.lineTo(...v[i].xy);
-    c.closePath();
-    c.fillStyle=shade>0?(focused?'#a185ce4d':'#ad96cd35'):(focused?'#62428c4d':'#7e5fa435');
-    c.fill();
-   }
-   for(const ring of [a,b]){
-    c.beginPath();c.ellipse(ring.x,ring.y,ring.r,ring.r*camera.slope,0,0,Math.PI*2);
-    c.stroke();
-   }
-   c.beginPath();
-   for(let i=0;i<sides;i+=sides/4){
-    c.moveTo(...mesh[0][i].xy);
-    for(let j=1;j<mesh.length;j++)c.lineTo(...mesh[j][i].xy);
-   }
-   c.stroke();
+  const shell=new Path2D(),rails=new Path2D();
+  for(let i=1;i<rings.length;i++)traceTubeSection(shell,rails,rings[i-1],rings[i],camera.slope);
+
+  c.save();
+  c.fillStyle=focused?'#8564c655':'#937acb32';
+  const span=Math.hypot(b.x-a.x,b.y-a.y);
+  if(focused&&span>1){
+   const shade=c.createLinearGradient(a.x,a.y,b.x,b.y);
+   shade.addColorStop(0,'#b491ea5c');shade.addColorStop(1,'#5a35a572');
+   c.fillStyle=shade;
   }
-  hits.push({id:tube.edgeIndex,ax:a.x,ay:a.y,bx:b.x,by:b.y,r:Math.min(16,Math.max(4,...rings.map(r=>r.r+2)))});
+  c.fill(shell);
+  c.strokeStyle=focused?'#563b8b':'#6c51a2a8';
+  c.lineWidth=focused?1.75:1;
+  c.stroke(rails);
+  c.beginPath();c.moveTo(a.x,a.y);c.lineTo(b.x,b.y);
+  c.setLineDash(focused?[5,4]:[3,3]);c.stroke();c.setLineDash([]);
+
+  for(const [i,ring] of [a,b].entries()){
+   c.strokeStyle=focused?(i?'#513684':'#a05628'):'#7358a0b8';
+   c.beginPath();c.ellipse(ring.x,ring.y,ring.r,ring.r*camera.slope,0,0,2*Math.PI);c.stroke();
+   if(focused){
+    c.fillStyle=c.strokeStyle;
+    c.beginPath();c.arc(ring.x,ring.y,3,0,2*Math.PI);c.fill();
+    const sign=i?1:-1, edgeX=ring.x+sign*ring.r;
+    const textX=edgeX+sign*14, textY=ring.y+sign*15;
+    c.beginPath();c.moveTo(edgeX,ring.y);c.lineTo(textX,textY);c.stroke();
+    c.font='600 11px system-ui';c.textAlign=i?'left':'right';c.textBaseline='middle';
+    const label=i?(ring.time===tube.end?'Later pass':'Range end'):(ring.time===tube.start?'Earlier pass':'Range start');
+    const labelX=textX+sign*4;
+    c.strokeStyle='#ffffffef';c.lineWidth=3;c.strokeText(label,labelX,textY);c.fillText(label,labelX,textY);
+    c.lineWidth=1.75;
+   }
+  }
+  c.restore();
+  hits.push({id:tube.edgeIndex,ax:a.x,ay:a.y,bx:b.x,by:b.y,r:5,shell});
   return true;
  }
  focusPrediction(tube){
   this.predictionFocusIndex=tube.edgeIndex;
   const middle=FireInterpolation.slice(tube,tube.midpoint);
   const [x]=geo(middle.longitude,middle.latitude);
-  const rings=volumeSections(tube,null).map(s=>sliceWorld(s,x));
+  const rings=volumeSections(tube).map(s=>sliceWorld(s,x));
   if(this.kind==='3d'){
    this.predictionFrame=spreadFrame(rings,tube);
    const a=rings[0],b=rings.at(-1),span=Math.hypot(b.x-a.x,b.y-a.y);
    if(span>1e-8)this.yaw=-Math.atan2(b.y-a.y,b.x-a.x);
-   this.tilt=defaultTilt;
+   this.tilt=Math.PI/3;
   }
   const corners=rings.flatMap(({x,y,z,radius:r})=>[
    [x-r,y-r,z],[x+r,y-r,z],[x-r,y+r,z],[x+r,y+r,z]
@@ -4082,7 +4109,7 @@ class View {
    const local=this.predictionFrame?volumeTimes(this.predictionFrame.tube):null;
    const pivotHeight=local?timeZ((local[0]+local[1])/2):selected?.kind==='edge'&&this.focusedSelection===selected?
      linkPoints(selected.index).reduce((z,p)=>z+p[2]/2,0):.5;
-   gesture={mode,anchor,pan:[...this.pan],yaw:this.yaw,tilt:this.tilt,scale:this.scale,
+   gesture={mode,anchor,pan:[...this.pan],yaw:this.yaw,tilt:this.tilt,scale:this.scale,zoomTimeOffset:this.zoomTimeOffset,
     pivot:mode==='rotate'?this.unproject(this.width/2,this.height/2,pivotHeight):null,
     spread:pinch?distance(points):0,moved:pinch,canPick:mode!=='pinch'};
   };
@@ -4119,13 +4146,14 @@ class View {
     const old=gesture.scale*this.height/2,now=this.pixelsPerUnit;
     this.pan=[
      gesture.pan[0]+(gesture.anchor[0]-this.width/2)/old-(x-this.width/2)/now,
-     gesture.pan[1]-(gesture.anchor[1]-this.height/2)/old+(y-this.height/2)/now
+     gesture.pan[1]-(gesture.anchor[1]-this.height/2+gesture.zoomTimeOffset)/old+
+      (y-this.height/2+gesture.zoomTimeOffset)/now
     ];
    }else if(gesture.mode==='pan'){
     this.pan=[gesture.pan[0]-dx/this.pixelsPerUnit,gesture.pan[1]+dy/this.pixelsPerUnit];
    }else{
     this.yaw=(gesture.yaw+dx*.006)%(2*Math.PI);
-    this.tilt=Math.max(.12,Math.min(1.35,gesture.tilt+dy*.005));
+    this.tilt=Math.max(0,Math.min(MAX_VIEW_TILT,gesture.tilt+dy*.005));
     this.pan=this.viewPoint(gesture.pivot);
    }
    this.invalidateCamera();
