@@ -2,6 +2,10 @@
 
 FireLedger is a browser-based explorer for the NASA Space Apps Challenge on MODIS and VIIRS harmonization. It maps satellite fire detections in Canada, finds candidate links between passes, and lets you explore where detections recur and how a linked footprint could change between observations.
 
+## adding the API key for judges
+
+After submission, we configured shared access to NASA FIRMS because the submitted site required each visitor to enter a MAP_KEY before loading satellite data. Judges can now choose dates and load detections without entering a key.
+
 ## How FireLedger works
 
 MODIS and VIIRS observe fires with different pixel sizes and at different times. We put their detections in a common format while keeping each footprint’s size, timestamp, and satellite. The resulting disks are the building blocks for the 2D map and the 3D space–time view.
