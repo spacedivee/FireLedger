@@ -465,9 +465,11 @@ button:focus-visible,summary:focus-visible,a:focus-visible,input:focus-visible,s
   </select></div>
   <div class="fc-field"><label for="fcProvider">AI model · small &amp; fast, no key</label><select id="fcProvider">
    <option value="auto" selected>Auto · small models, fastest first</option>
-   <option value="mistral7b">Mistral 7B · OVHcloud</option>
-   <option value="nova">Nova Micro · Pollinations</option>
-   <option value="nemo">Mistral Nemo 12B · OVHcloud</option>
+   <option value="qwen9b">Qwen 3.5 9B · OVHcloud</option>
+   <option value="pollinations_fast">GPT Nano · Pollinations</option>
+   <option value="gptoss20b">GPT-OSS 20B · OVHcloud</option>
+   <option value="pollinations_mistral">Mistral Small 3.2 · Pollinations</option>
+   <option value="mistral24b">Mistral Small 3.2 24B · OVHcloud</option>
    <option value="builtin">Built-in local analyst · no AI API</option>
   </select></div>
   <div class="fc-model-extra visible" id="fcOllamaSettings">
@@ -1726,13 +1728,15 @@ self.onmessage = ({data}) => {
  const OVH_BASE='https://oai.endpoints.kepler.ai.cloud.ovh.net/v1';
  const POLLINATIONS_URL='https://text.pollinations.ai/openai';
  const MODELS={
-  mistral7b:{label:'Mistral 7B · OVHcloud',kind:'ovh',match:/mistral-7b/i,fallbackId:'Mistral-7B-Instruct-v0.3'},
-  nova:{label:'Nova Micro · Pollinations',kind:'pollinations',id:'nova-micro'},
-  nemo:{label:'Mistral Nemo 12B · OVHcloud',kind:'ovh',match:/mistral-nemo/i,fallbackId:'Mistral-Nemo-Instruct-2407'}
+  qwen9b:{label:'Qwen 3.5 9B · OVHcloud',kind:'ovh',match:/qwen.*9b|qwen3\.5/i,fallbackId:'Qwen3.5-9B'},
+  pollinations_fast:{label:'GPT Nano · Pollinations',kind:'pollinations',id:'openai-fast'},
+  gptoss20b:{label:'GPT-OSS 20B · OVHcloud',kind:'ovh',match:/gpt-oss-20b/i,fallbackId:'gpt-oss-20b'},
+  pollinations_mistral:{label:'Mistral Small 3.2 · Pollinations',kind:'pollinations',id:'mistral'},
+  mistral24b:{label:'Mistral Small 3.2 24B · OVHcloud',kind:'ovh',match:/mistral-small-3\.2/i,fallbackId:'Mistral-Small-3.2-24B-Instruct-2506'}
  };
- const AUTO_ORDER=['mistral7b','nova','nemo'];
+ const AUTO_ORDER=['qwen9b','pollinations_fast','gptoss20b','pollinations_mistral','mistral24b'];
  const MAX_TOKENS=450,HISTORY_TURNS=6;
- const FIRST_BYTE_MS=14000,IDLE_MS=12000,TOTAL_MS=45000,ELEVATION_MS=9000;
+ const FIRST_BYTE_MS=18000,IDLE_MS=12000,TOTAL_MS=45000,ELEVATION_MS=9000;
 
  const roles={
   general:'Give a concise, balanced operational overview. Separate known facts from uncertainty.',
@@ -1868,7 +1872,13 @@ self.onmessage = ({data}) => {
     if(r.ok){const d=await r.json();const ids=(d.data||[]).map(m=>m&&m.id).filter(Boolean);if(ids.length)ovhIds=ids;}
    }catch(_){}finally{clearTimeout(t);}
   }
-  return (ovhIds&&ovhIds.find(id=>spec.match.test(id)))||spec.fallbackId;
+  if(ovhIds){
+   const exact=ovhIds.find(id=>spec.match.test(id));
+   if(exact)return exact;
+   const anyChat=ovhIds.find(id=>/qwen|mistral|llama|gpt-oss/i.test(id)&&!/embed|bge|whisper|guard|tts|asr/i.test(id));
+   if(anyChat)return anyChat;
+  }
+  return spec.fallbackId;
  }
  function buildMessages(question){
   const system=`You are FireLedger, a cautious fire-incident situational-awareness assistant. ${roles[$fc('fcRole').value]||roles.general}
@@ -1886,18 +1896,19 @@ Map context: ${contextText()}`;
   try{
    arm(FIRST_BYTE_MS);
    const model=spec.kind==='ovh'?await resolveOvhId(spec):spec.id;
+   const useStream=spec.kind==='ovh';
    arm(FIRST_BYTE_MS);
    const res=await fetch(spec.kind==='ovh'?OVH_BASE+'/chat/completions':POLLINATIONS_URL,{
     method:'POST',
-    headers:{'Content-Type':'application/json','Accept':'text/event-stream, application/json'},
-    body:JSON.stringify({model,messages:msgs,stream:true,max_tokens:MAX_TOKENS,temperature:.25}),
+    headers:{'Content-Type':'application/json','Accept':useStream?'text/event-stream, application/json':'application/json'},
+    body:JSON.stringify({model,messages:msgs,stream:useStream,max_tokens:MAX_TOKENS,temperature:.25}),
     signal:ctl.signal
    });
    if(!res.ok){
     const detail=(await res.text().catch(()=>'')).slice(0,160);
     const err=new Error('HTTP '+res.status+(detail?' · '+detail:''));err.status=res.status;throw err;
    }
-   const isStream=res.body&&/event-stream/i.test(res.headers.get('content-type')||'');
+   const isStream=useStream&&res.body&&/event-stream/i.test(res.headers.get('content-type')||'');
    if(!isStream){
     const raw=await res.text();let data;
     try{data=JSON.parse(raw);}catch(_){full=raw;}
@@ -1996,8 +2007,8 @@ Map context: ${contextText()}`;
   status.textContent=choice==='builtin'
    ?'Runs locally in this page. No network AI API is used.'
    :choice==='auto'
-    ?'Tries small, fast models in turn (Mistral 7B → Nova Micro → Mistral Nemo 12B), then falls back to the built-in analyst. No key needed; free anonymous use is rate-limited.'
-    :'Uses '+MODELS[choice].label+' first, then the other small models if it is slow or unavailable. No key needed.';
+    ?'Tries active small models in turn (Qwen 3.5 9B → GPT Nano → GPT-OSS 20B → Mistral Small 3.2), then falls back to the built-in analyst. No key needed; free anonymous use is rate-limited.'
+    :'Uses '+(MODELS[choice]?.label||choice)+' first, then the other small models if it is slow or unavailable. No key needed.';
  }
 
  launcher.addEventListener('click',()=>{panel.classList.toggle('open');launcher.setAttribute('aria-expanded',String(panel.classList.contains('open')));if(panel.classList.contains('open')){refreshContext();$fc('fcInput').focus();}});
