@@ -117,14 +117,25 @@ Use **Focus a slice** to isolate a candidate. **Find a slice** jumps to an eligi
 
 ![Focused cyan prediction slice shown on the 2D map and through the violet 3D space–time volume](docs/images/prediction.png)
 
-## Measure and isolate an area
+## Measure and isolate an area in 3D
 
-1. Click **Measure** in the masthead and choose **Area** or **Distance**.
-2. Click points on the map. Return to the first point to close a loop, or double-click the last point or press **Enter** to finish. Choose the measurement units in the tool.
-3. For a closed outline, click **View this area** beside the result. The map and data views focus on the outline and the timeline and calendar update to reflect the selected area.
-4. Click **Show full map** to restore the full extent. **Pan** temporarily lets you navigate without adding points, and **Clear** removes the measurements.
+### Draw the boundary
+
+1. Open **2D map** in the masthead and zoom in on the area you want to study. Click **Measure** and select **Area**.
+2. Click the map to place boundary points in order. Place at least three points and trace around the region. Click the **first point** again to close the outline. In **Area** mode, you can also double-click the last point or press **Enter** to finish.
+3. Open **Total Area** if the results are collapsed. Use **Units** to switch between acres, hectares, square kilometers, and square miles. To remove one result, click its **×**. **Clear** removes all measurements. Use **Pan** to move around without adding boundary points.
+4. You can also draw with **Distance**. Use it for an open path in kilometers or miles. To use that path as an area boundary, place at least three points and click the **first point** again to close the loop.
 
 ![Completed area measurement with its total and the View this area button](docs/images/measure.png)
+
+### Show only that area in space–time
+
+1. In the results, click **View this area** next to the closed outline you want. FireLedger fits the outline and filters the basemap and observations to it. Candidate links require both endpoints to be inside, and the timeline and calendar update for the selected area.
+2. Select **3D space–time** in the masthead. Choose **Both views** if you want to compare the same outline in 2D and 3D side by side.
+3. Drag to rotate or tilt, Shift-drag or right-drag to pan, and scroll to zoom. Use **Time scale** to spread the time layers toward **10 min/px** or flatten them toward **12 h/px**. Height represents UTC time. Use the timeline to move the selected time through the area.
+4. When you’re done, click **Show full map**. If the timeline is collapsed, you can also use **Expand timeline** to bring back the scrubber and calendar.
+
+![Example of an outlined area in FireLedger’s 3D space–time view, with thermal overlap on the ground and observations at different heights](docs/images/measurement-area-3d.png)
 
 ## Team
 
