@@ -2,6 +2,66 @@
 
 FireLedger is a browser-based explorer for the NASA Space Apps Challenge on MODIS and VIIRS harmonization. It maps satellite fire detections in Canada, finds candidate links between passes, and lets you explore where detections recur and how a linked footprint could change between observations.
 
+## How FireLedger works
+
+MODIS and VIIRS observe fires with different pixel sizes and at different times. We put their detections in a common format while keeping each footprint’s size, timestamp, and satellite. The resulting disks are the building blocks for the 2D map and the 3D space–time view.
+
+### 1. Identify and prepare the input
+
+For a local import, FireLedger reads one raw CSV per FIRMS ZIP and identifies the product from its archive name and records. The acquisition timestamps come from the rows. For an API import, FireLedger checks Standard Processing coverage first, then downloads data in batches of up to five days per product and retains points inside or on the Canada boundary. Terra and Aqua share a single MODIS download when both are selected.
+
+### 2. Normalize observations and make disks
+
+The formatter combines both instruments into a master CSV with eight columns:
+
+```text
+longitude,latitude,datetime_utc,radius_km,brightness_k,confidence_raw,type,source_id
+```
+
+It joins the acquisition date and zero-padded time into a UTC timestamp. MODIS uses the reported brightness field, and VIIRS uses its I4 brightness temperature (`bright_ti4`). The formatter retains the source and confidence and marks missing detection types as unknown.
+
+Each detection becomes a disk centered on its reported longitude and latitude. For scan and track dimensions in kilometers, the disk radius is **√(scan × track / π)**. This gives the circle the same area as the approximate rectangular pixel footprint and allows for variable pixel sizes. The disk represents the satellite’s detection footprint. Fire perimeter and burned area require other measurements.
+
+| Source ID | Satellite | Instrument |
+| --- | --- | --- |
+| 0 | Terra | MODIS |
+| 1 | Aqua | MODIS |
+| 2 | Suomi NPP | VIIRS |
+| 3 | NOAA-20 | VIIRS |
+| 4 | NOAA-21 | VIIRS |
+
+### 3. Split by location and month
+
+The master CSV is divided into **5° longitude × 5° latitude × one UTC month** tiles. The linker reads those tiles, orders detections by time, and excludes exact duplicate records from matching. It searches nearby recent detections with a spatial index, so candidates can cross tile boundaries.
+
+### 4. Score links between satellite passes
+
+For each later detection, the linker considers earlier disks from the previous **6 hours**, with a **30-minute minimum** for pairs from the same satellite. It rejects conflicting known detection types. It calculates the great-circle distance between the centers, subtracts the two radii, and checks whether the remaining gap fits the model allowance. That allowance is **0.5 km + 2 km/h × elapsed hours**. Known static-source associations use only the 0.5 km padding.
+
+The score combines spatial support (**45%**), temporal support (**25%**), sensor confidence (**20%**), and detection-type agreement (**10%**). Spatial support falls as the center distance grows relative to the combined radii and allowance. Temporal support decays exponentially with a three-hour time scale. MODIS numeric confidence and VIIRS low, nominal, and high confidence are scaled before the pair is scored. Unknown types receive partial type support.
+
+The linker keeps up to **three** outgoing candidates per observation scoring at least **50/100** and ranks the strongest first. The scores describe heuristic compatibility. A rejected link leaves the detections unlinked, and even the strongest retained link needs independent evidence to establish that both detections came from the same fire.
+
+### 5. Draw the space–time volume and take a slice
+
+Our prototype stacked observed disks along a vertical time axis and used cone-like geometry to describe change between passes. The app connects eligible pairs with two tapered sections. They meet the measured footprints at both ends and allow limited modeled widening between them. The center advances in proportion to elapsed time along the candidate link. A horizontal cut at the selected UTC time gives the cyan slice shown on the 2D map and in the 3D view.
+
+Only eligible vegetation-fire or unclassified detections contribute to the model. Static-source links are excluded. Each slice uses two existing observations and describes an estimate within that interval.
+
+![Original FireLedger concept slide showing cone-like shapes and a horizontal time slice](docs/images/prototype-geometry.png)
+
+*Original space–time geometry sketch from our design presentation.*
+
+### 6. Compare modeled progression with repeat detections
+
+Thermal overlap uses the observations directly. It scales brightness per satellite and groups detections from the same satellite into 30-minute windows within each map cell. The strongest reading from each window contributes to the thermal color. The numbered badges show estimated repeat-pass counts, and the Inspector gives first and latest detection times. The user can compare these observations with the separately modeled cyan slices.
+
+![FireLedger design slide showing the early side-by-side map, time controls, and prototype development](docs/images/prototype-interface.png)
+
+*Early web interface prototype from the same presentation.*
+
+[FireLedger design presentation](https://docs.google.com/presentation/d/19QAzI4S_RdidE5Zqw5E18RgPHsGQqN4pUDCTLKq5xLo/edit)
+
 ## Open FireLedger
 
 - **Online.** Open [FireLedger on GitHub Pages](https://spacedivee.github.io/FireLedger/).
