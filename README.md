@@ -137,6 +137,12 @@ Use **Focus a slice** to isolate a candidate. **Find a slice** jumps to an eligi
 
 ![Example of an outlined area in FireLedger’s 3D space–time view, with thermal overlap on the ground and observations at different heights](docs/images/measurement-area-3d.png)
 
+## AI assistance prototype
+
+[PROTOTYPE AI BUILD.html](PROTOTYPE%20AI%20BUILD.html) is an unfinished, standalone experiment. It adds a **Fire response assistant** that uses the latest area drawn with **Measure** to discuss observed detections, terrain, and general fire-spread factors. It can try external AI models and fall back to a built-in summary. To explore it, download the HTML file and open it separately in your browser.
+
+External model requests can send your question and a summary of the selected perimeter to third-party providers. The prototype is for exploring response context. Use official guidance and incident command for operational decisions.
+
 ## Team
 
 - David Dajbog
