@@ -41,6 +41,42 @@
  .firms-progress details>summary{cursor:pointer;color:#145f64;font-size:11px;margin-top:5px}
  #firmsErrors{color:#a43832}
  #firmsFormatResults a{display:inline-block;padding:3px 0}
+.observation-calendar{padding:19px 18px;border-top:1px solid var(--line);color:var(--ink)}
+.calendar-header{display:flex;align-items:center;justify-content:space-between;gap:7px 10px;flex-wrap:wrap}
+.calendar-header h2{font-size:15px;line-height:1.3;margin:0}
+.calendar-dataset{border-radius:20px;padding:3px 7px;background:#ebf5f5;color:#0b6469;font-size:10px;font-weight:650}
+.calendar-dataset[data-demo="true"]{background:#faf0da;color:#725020}
+.calendar-dataset:empty{display:none}
+.calendar-note{margin:6px 0 11px;font-size:11px;color:var(--muted);line-height:1.45}
+.calendar-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 auto 3px;max-width:720px}
+.calendar-toolbar strong{font-size:13px}
+.calendar-nav{font-size:19px;line-height:1;min-width:32px;min-height:28px;padding:3px 8px}
+.calendar-nav:disabled{opacity:.42;cursor:default}
+.calendar-scroll{overflow-x:auto}
+.observation-calendar table{width:100%;min-width:270px;max-width:728px;margin:0 auto;table-layout:fixed;border-spacing:4px}
+.observation-calendar th{font-size:10px;padding:3px 0;color:var(--muted);text-align:center}
+.observation-calendar td{vertical-align:middle;text-align:center;padding:0}
+.calendar-day{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;width:100%;min-height:43px;padding:3px 1px;background:#f5f8f9;border:1px solid #d5e4e8;border-radius:5px;color:#23444d;font:inherit;cursor:pointer}
+.calendar-day[data-intensity="1"]{background:#e4f3f1}
+.calendar-day[data-intensity="2"]{background:#c0e3df}
+.calendar-day[data-intensity="3"]{background:#85c5c1;border-color:#79b8b5;color:#133e44}
+.calendar-day[data-intensity="4"]{background:#176e74;border-color:#176e74;color:#fff}
+.calendar-day:hover{box-shadow:inset 0 0 0 1px currentColor}
+.calendar-day[aria-pressed="true"]{outline:2px solid #173d50;outline-offset:0;box-shadow:inset 0 0 0 2px #fff}
+.calendar-day:focus-visible,.calendar-nav:focus-visible{outline:2px solid #1b4e87;outline-offset:2px}
+.calendar-day-number{font-size:10px;line-height:1.15}
+.calendar-count{font-size:12px;line-height:1.2;font-variant-numeric:tabular-nums}
+.calendar-outside{background:#f7f9fa;color:#667d88;font-size:10px;border-radius:5px}
+.calendar-breakdown{margin:10px auto 0;max-width:720px;font-size:11px;color:#264751;min-height:16px}
+.calendar-breakdown>p{margin:0;color:var(--muted)}
+.calendar-satellites{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,104px),1fr));gap:5px;margin:7px 0 0}
+.calendar-satellites div{padding:5px 7px;border-radius:4px;background:#f3f7f8;border-left:2px solid #0072b2}
+.calendar-satellites div[data-satellite="1"]{border-color:#d55e00}
+.calendar-satellites div[data-satellite="2"]{border-color:#008b7b}
+.calendar-satellites div[data-satellite="3"]{border-color:#8b63b5}
+.calendar-satellites div[data-satellite="4"]{border-color:#536d83}
+.calendar-satellites dd{margin:3px 0 0;font-weight:700;font-variant-numeric:tabular-nums}
+@media(max-width:760px){.observation-calendar{padding:14px 10px}.calendar-day{min-height:37px}.calendar-count{font-size:11px}}
 </style></head>
 <body>
 <header><a class="brand" href="#" aria-label="FireLedger home"><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><path d="M7 24 16 7l9 17Z" fill="none" stroke="#0a8a90" stroke-width="2"></path><circle cx="7" cy="24" r="4" fill="#e59b4d"></circle><circle cx="16" cy="7" r="4" fill="#0a8a90"></circle><circle cx="25" cy="24" r="4" fill="#173d50"></circle></svg><span>FireLedger<span class="brand-sub">OBSERVATION EXPLORER</span></span></a><div class="header-right"><span class="local-badge"><i></i> Files stay in your browser</span><button id="helpButton" class="quiet">How to read this</button></div></header>
@@ -108,7 +144,8 @@
 <section class="workspace"><div class="metrics"><div><strong id="visibleNodes">—</strong><span>observations in filter</span></div><div><strong id="visibleLinks">—</strong><span>candidate links in filter</span></div><div class="dataset-total"><strong id="totalCount">—</strong><span>loaded observations / links</span></div><button id="fitButton" class="secondary compact">Fit views</button></div>
 <div class="views" id="views"><section class="view" id="view2d"><div class="view-label"><span class="view-number">01</span><div><b>Geographic view</b><span>Observation footprints</span></div><button class="view-fit quiet" data-fit="2d" aria-label="Reset 2D camera">Fit</button></div><div class="zoom-buttons"><button data-zoom="2d" data-direction="in" aria-label="Zoom in 2D">+</button><button data-zoom="2d" data-direction="out" aria-label="Zoom out 2D">−</button></div><div class="map-attribution"><a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener">Natural Earth</a></div><div class="canvas-wrap"><canvas id="base2d" class="base"></canvas><canvas id="gl2d" class="plot" aria-label="2D map. Drag to pan, scroll to zoom, click a disk or link." tabindex="0"></canvas><canvas id="overlay2d" class="overlay" aria-hidden="true"></canvas></div><div class="view-foot">Drag to pan · scroll to zoom · click to inspect</div></section><section class="view" id="view3d"><div class="view-label"><span class="view-number">02</span><div><b>Space–time view</b><span>Height represents time, not altitude</span></div><button class="view-fit quiet" data-fit="3d" aria-label="Reset 3D camera">Fit</button></div><div class="zoom-buttons"><button data-zoom="3d" data-direction="in" aria-label="Zoom in 3D">+</button><button data-zoom="3d" data-direction="out" aria-label="Zoom out 3D">−</button></div><div class="map-attribution"><a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener">Natural Earth</a></div><div class="canvas-wrap"><canvas id="base3d" class="base"></canvas><canvas id="gl3d" class="plot" aria-label="3D space-time view. Drag to rotate, shift-drag to pan, scroll to zoom, click to inspect." tabindex="0"></canvas><canvas id="overlay3d" class="overlay" aria-hidden="true"></canvas></div><div class="view-foot">Drag to rotate · Shift/right-drag to pan · scroll to zoom</div></section><div id="tooltip" role="status"></div></div>
 <div class="timeline"><div class="timeline-head"><div><div class="eyebrow">SELECTED MOMENT · UTC</div><strong id="timeLabel">June 1, 2023</strong></div><div class="time-actions"><button id="backButton" class="secondary compact" aria-label="Back one hour">−1 h</button><button id="playButton" class="primary compact">▶ Play</button><button id="forwardButton" class="secondary compact" aria-label="Forward one hour">+1 h</button></div></div><div class="scrubber"><canvas id="histogram" aria-hidden="true"></canvas><input id="timeSlider" type="range" min="0" max="10080" step="5" value="10080" aria-label="Selected UTC time"></div><div id="timeTicks" class="time-ticks"></div><div class="timeline-note"><span><i></i> Observation counts across the range</span><span>Links appear after both endpoints are observed. No interpolation.</span></div></div>
-<div id="rendererNote" class="renderer-note"></div><div class="workspace-footer"><span>Candidate associations · not confirmed fire tracks</span><span>Offline basemap</span></div></section>
+<section id="observationCalendar" class="observation-calendar"></section>
+ <div id="rendererNote" class="renderer-note"></div><div class="workspace-footer"><span>Candidate associations · not confirmed fire tracks</span><span>Offline basemap</span></div></section>
 <aside class="inspector"><div class="section-title">Inspect a connection<button id="clearSelection" class="quiet" aria-label="Clear selected observation or link">×</button></div><div id="inspectorBody"></div></aside>
 </main>
 <dialog id="helpDialog"><button id="closeHelp" class="quiet close" aria-label="Close help">×</button><div class="eyebrow">READING THE EXPLORER</div><h2>Observed points. Possible links.</h2><p>Enter a NASA FIRMS MAP_KEY, choose satellites and a UTC date range, then import Canadian detections. FireLedger processes detections in your browser using the <a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener noreferrer">Natural Earth</a> 1:10m Canada boundary. The overview groups nearby detections. Zoom in for individual footprints and candidate links.</p><p>The time slider reveals observations and completed links. In 3D, vertical height represents UTC time. The highlighted horizontal plane is your selected moment. Drag the 3D view to rotate; shift-drag to pan.</p><p>A link score is a heuristic compatibility measure, <b>not a percent probability</b>. Apparent speed is the separation of observation centres divided by elapsed time, not measured fire spread. Multiple links may be alternatives or branches; this viewer does not decide which.</p><p>Disks are equal-area approximations of satellite pixels, not fire perimeters or positional-error circles. Brightness values remain instrument-specific. Orange solid links have the highest outgoing score for their source disk (including ties); blue dashed links are alternatives. Darker colours indicate higher scores. These styles do not confirm an association.</p><p>The viewer supports up to 1 million observations and 2 million links; actual performance depends on your browser and graphics hardware. Reduce the export region or time period if importing fails.</p><p>The built-in Natural Earth basemap works offline. Drag to move the 2D map or rotate the 3D view. Shift-drag or right-drag to pan in 3D, and use two fingers to pan and pinch on touchscreens.</p><p>Use the buttons in a link’s details to bring that link into view in 2D or 3D. To find a data square, enter longitude and latitude in decimal degrees. For example, −74.5°, 51.2° locates the square from 75°W to 70°W and 50°N to 55°N.</p><button id="downloadViewer" class="secondary">Download viewer HTML</button></dialog>
@@ -1990,6 +2027,7 @@ function applyDataset(data,demo=false){pause();clearLocatedSquare();N=new Float6
  studyBounds=[Math.min(-.06,left),Math.min(-.06,bottom),Math.max(.06,right),Math.max(.06,top)];
  const sTime=Date.parse(settings?.start||'')/1000,eTime=Date.parse(settings?.end_exclusive||'')/1000;if(Number.isFinite(sTime)&&Number.isFinite(eTime)&&eTime>sTime){start=sTime;end=eTime}else if(validNodes){start=Math.floor(minT/86400)*86400;end=(Math.floor(maxT/86400)+1)*86400}else{start=Date.parse('2023-06-01T00:00:00Z')/1000;end=start+7*86400}cutoff=end-1;
  availableStart=start;availableEnd=end;$('startDate').value=isoTime(start);$('endDate').value=isoTime(end);$('scoreInput').value=Number.isFinite(settings?.settings?.min_score)?settings.settings.min_score:50;minimumScore=+$('scoreInput').value;$('scoreLabel').textContent=minimumScore;$('datasetBadge').textContent=demo?'DEMO':'LOCAL';$('datasetBadge').className='badge'+(demo?' demo':'');$('datasetDescription').textContent=demo?'Illustrative Québec observations. Not measured fire data.':data.viaApi?'Imported from NASA FIRMS, including unlinked observations.':data.rawFirms?'Processed from your FIRMS ZIPs, including unlinked observations.':data.hasObservations?'Loaded your export, including unlinked observations.':'Links loaded. Only their endpoints are available; add observations.csv to include unlinked disks.';$('totalCount').textContent=fmt(validNodes,0)+' / '+fmt(edgeCount,0);$('dateMessage').textContent='';rebuildGeometry();for(const r of renderers)r.fit();setupTimeline();showInspector();requestDraw();
+ calendar.setIndex(indexObservations({nodes: N, nodeCount, settings}), {demo});
 }
 function rangeTick(t) {
  if (end - start <= 2 * 86400) return dayText(t) + ' ' + new Date(t * 1000).toISOString().slice(11,16);
@@ -2116,7 +2154,7 @@ function focusSelectedLink(kind){
 }
 
 function bindUI(){document.querySelectorAll('[data-view]').forEach(button=>button.onclick=()=>setLayout(button.dataset.view));$('coordinateForm').onsubmit=locateSquare;$('clearSquare').onclick=()=>{clearLocatedSquare();requestDraw(false)};document.querySelectorAll('[data-fit]').forEach(b=>b.onclick=()=>renderers.find(r=>r.kind===b.dataset.fit).fit());$('fitButton').onclick=()=>renderers.forEach(r=>r.fit());$('clearSelection').onclick=()=>{selected=null;showInspector();requestDraw(false)};$('inspectorBody').onclick=e=>{const jump=e.target.closest('[data-link-view]');if(jump){focusSelectedLink(jump.dataset.linkView);return}const button=e.target.closest('[data-node],[data-edge]');if(!button)return;selected=button.dataset.node!==undefined?{kind:'node',index:Number(button.dataset.node)}:{kind:'edge',index:Number(button.dataset.edge)};showInspector();requestDraw(false)};for(const id of ['disksToggle','linksToggle','timeMode'])$(id).onchange=()=>{clearLinkFocus();low=$('timeMode').value==='all'?start:Math.max(start,cutoff-Number($('timeMode').value)*3600);showInspector();requestDraw()};$('scoreInput').oninput=()=>{clearLinkFocus();minimumScore=+$('scoreInput').value;$('scoreLabel').textContent=minimumScore;showInspector();requestDraw()};$('timeSlider').oninput=()=>{pause();setTime(start+Number($('timeSlider').value)*60)};$('backButton').onclick=()=>{pause();setTime(cutoff-3600)};$('forwardButton').onclick=()=>{pause();setTime(cutoff+3600)};$('playButton').onclick=()=>{if(playing){pause();return}if(cutoff>=end-1)setTime(start);$('playButton').textContent='Ⅱ Pause';playing=setInterval(()=>{setTime(cutoff+Math.max(1800,Math.ceil((end-start)/500)));if(cutoff>=end-1)pause()},160)};
- $('applyDates').onclick=()=>{const s=Date.parse($('startDate').value+'Z')/1000,e=Date.parse($('endDate').value+'Z')/1000;if(!Number.isFinite(s)||!Number.isFinite(e)||e<=s){$('dateMessage').textContent='End date and time must be after the start (UTC).';$('dateMessage').className='tiny error';return}pause();clearLinkFocus();start=s;end=e;cutoff=end-1;low=start;rebuildGeometry();setupTimeline();showInspector();requestDraw();$('dateMessage').className='tiny';$('dateMessage').textContent='Showing '+dateText(start)+' to '+dateText(end)+' UTC (end excluded). Only loaded observations are available.'};$('resetDates').onclick=()=>{$('startDate').value=isoTime(availableStart);$('endDate').value=isoTime(availableEnd);$('applyDates').click()};document.querySelectorAll('[data-zoom]').forEach(b=>b.onclick=()=>{const r=renderers.find(r=>r.kind===b.dataset.zoom);r.zoomAt(r.width/2,r.height/2,b.dataset.direction==='in'?1.6:1/1.6)});$('folderButton').onclick=()=>$('folderInput').click();$('filesButton').onclick=()=>$('filesInput').click();for(const id of ['folderInput','filesInput'])$(id).onchange=e=>{chooseFiles(e.target.files);e.target.value=''};$('cancelLoad').onclick=()=>{cancelImport();status('Import cancelled. Previous dataset is still displayed.')};$('demoButton').onclick=()=>{cancelImport();demo()};$('helpButton').onclick=()=>$('helpDialog').showModal();$('closeHelp').onclick=()=>$('helpDialog').close();$('downloadViewer').onclick=()=>{const source=window.__originalDocument;if(!source){status('Offline download is not ready yet. Try again after the page finishes loading.',true);return}const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([source],{type:'text/html'}));a.download='fireledger_viewer_v3.html';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};new ResizeObserver(drawHistogram).observe($('histogram'));
+ $('applyDates').onclick=()=>{const s=Date.parse($('startDate').value+'Z')/1000,e=Date.parse($('endDate').value+'Z')/1000;if(!Number.isFinite(s)||!Number.isFinite(e)||e<=s){$('dateMessage').textContent='End date and time must be after the start (UTC).';$('dateMessage').className='tiny error';return}pause();clearLinkFocus();start=s;end=e;cutoff=end-1;low=start;rebuildGeometry();setupTimeline();showInspector();requestDraw();calendar.setRange(s * 1000, e * 1000);$('dateMessage').className='tiny';$('dateMessage').textContent='Showing '+dateText(start)+' to '+dateText(end)+' UTC (end excluded). Only loaded observations are available.'};$('resetDates').onclick=()=>{$('startDate').value=isoTime(availableStart);$('endDate').value=isoTime(availableEnd);$('applyDates').click()};document.querySelectorAll('[data-zoom]').forEach(b=>b.onclick=()=>{const r=renderers.find(r=>r.kind===b.dataset.zoom);r.zoomAt(r.width/2,r.height/2,b.dataset.direction==='in'?1.6:1/1.6)});$('folderButton').onclick=()=>$('folderInput').click();$('filesButton').onclick=()=>$('filesInput').click();for(const id of ['folderInput','filesInput'])$(id).onchange=e=>{chooseFiles(e.target.files);e.target.value=''};$('cancelLoad').onclick=()=>{cancelImport();status('Import cancelled. Previous dataset is still displayed.')};$('demoButton').onclick=()=>{cancelImport();demo()};$('helpButton').onclick=()=>$('helpDialog').showModal();$('closeHelp').onclick=()=>$('helpDialog').close();$('downloadViewer').onclick=()=>{const source=window.__originalDocument;if(!source){status('Offline download is not ready yet. Try again after the page finishes loading.',true);return}const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([source],{type:'text/html'}));a.download='fireledger_viewer_v3.html';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};new ResizeObserver(drawHistogram).observe($('histogram'));
 }
 function createDataWorker() {
   const source = document.getElementById('workerSource').textContent;
@@ -2348,8 +2386,253 @@ function bindFirmsUpload() {
   };
 }
 
+const {indexObservations, mountCalendar} = (() => {
+const NODE_STRIDE = 11;
+const TIMESTAMP = 3;
+const SATELLITE = 8;
+const DUPLICATE_OF = 10;
+const DAY_MS = 86_400_000;
+const SATELLITES = Object.freeze([
+  'Terra MODIS', 'Aqua MODIS', 'Suomi NPP VIIRS', 'NOAA-20 VIIRS', 'NOAA-21 VIIRS',
+]);
+
+// Keep the viewer's packed worker format at this boundary.
+function indexObservations({ nodes, nodeCount, settings } = {}) {
+  const values = nodes instanceof Float64Array ? nodes : new Float64Array(nodes);
+  const used = nodeCount * NODE_STRIDE;
+  if (!Number.isSafeInteger(used) || !Number.isInteger(nodeCount) || nodeCount < 0 || values.length < used) {
+    throw new RangeError('Invalid FireLedger observation buffer');
+  }
+
+  const start = Date.parse(settings?.start);
+  const end = Date.parse(settings?.end_exclusive);
+  const hasWindow = Number.isFinite(start) && Number.isFinite(end) && end > start;
+  const days = new Map();
+  let firstObservation = Infinity;
+  let lastObservation = -Infinity;
+  for (let offset = 0; offset < used; offset += NODE_STRIDE) {
+    if (values[offset + DUPLICATE_OF] >= 0) continue;
+    const seconds = values[offset + TIMESTAMP];
+    const satellite = values[offset + SATELLITE];
+    if (!Number.isFinite(seconds) || !Number.isInteger(satellite) ||
+        satellite < 0 || satellite >= SATELLITES.length) {
+      throw new RangeError('Invalid FireLedger observation timestamp or satellite');
+    }
+    if (hasWindow && (seconds * 1000 < start || seconds * 1000 >= end)) continue;
+    const day = Math.floor(seconds / 86400);
+    firstObservation = Math.min(firstObservation, day);
+    lastObservation = Math.max(lastObservation, day);
+    let counts = days.get(day);
+    if (!counts) {
+      counts = Array(SATELLITES.length).fill(0);
+      days.set(day, counts);
+    }
+    counts[satellite]++;
+  }
+
+  const firstDay = hasWindow ? Math.floor(start / DAY_MS) : firstObservation;
+  const lastDay = hasWindow ? Math.ceil(end / DAY_MS) - 1 : lastObservation;
+
+  return {
+    firstDay,
+    lastDay,
+    getDay(day) {
+      if (!Number.isInteger(day) || day < firstDay || day > lastDay) return null;
+      const bySatellite = days.get(day)?.slice() ?? Array(SATELLITES.length).fill(0);
+      const begin = day * DAY_MS;
+      return {
+        bySatellite,
+        total: bySatellite.reduce((sum, value) => sum + value, 0),
+        start: new Date(hasWindow ? Math.max(begin, start) : begin).toISOString(),
+        endExclusive: new Date(hasWindow ? Math.min(begin + DAY_MS, end) : begin + DAY_MS).toISOString(),
+      };
+    },
+  };
+}
+
+const monthLabel = new Intl.DateTimeFormat('en', {
+  month: 'long', year: 'numeric', timeZone: 'UTC',
+});
+const dayLabel = new Intl.DateTimeFormat('en', {
+  month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC',
+});
+const compactCount = new Intl.NumberFormat(undefined, {notation: 'compact', maximumFractionDigits: 1});
+const numberLabel = new Intl.NumberFormat();
+const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+function mountCalendar(host, {onSelectDay}) {
+  const doc = host.ownerDocument;
+  const make = (tag, label = '', className = '') => {
+    const element = doc.createElement(tag);
+    element.textContent = label;
+    if (className) element.className = className;
+    return element;
+  };
+  const button = (label, className) => Object.assign(make('button', label, className), {type: 'button'});
+  const header = make('div', '', 'calendar-header');
+  const heading = make('h2', 'Observation calendar');
+  heading.id = 'observationCalendarTitle';
+  host.setAttribute('aria-labelledby', heading.id);
+  const dataset = make('span', '', 'calendar-dataset');
+  header.append(heading, dataset);
+  const note = make('p', '', 'calendar-note');
+
+  const toolbar = make('div', '', 'calendar-toolbar');
+  const prev = button('‹', 'secondary compact calendar-nav');
+  prev.setAttribute('aria-label', 'Previous month');
+  const next = button('›', 'secondary compact calendar-nav');
+  next.setAttribute('aria-label', 'Next month');
+  const label = make('strong');
+  label.setAttribute('aria-live', 'polite');
+  toolbar.append(prev, label, next);
+  const scroll = make('div', '', 'calendar-scroll');
+  const table = make('table');
+  table.setAttribute('aria-label', 'Daily observation counts in UTC');
+  const head = table.createTHead().insertRow();
+  for (const weekday of weekdays) {
+    const cell = make('th', weekday.slice(0, 3));
+    cell.scope = 'col';
+    cell.setAttribute('abbr', weekday);
+    head.append(cell);
+  }
+  const body = table.createTBody();
+  scroll.append(table);
+  const breakdown = make('div', '', 'calendar-breakdown');
+  breakdown.setAttribute('aria-live', 'polite');
+  host.replaceChildren(header, note, toolbar, scroll, breakdown);
+
+  let index, month, selected;
+  const picks = new Map();
+  function shiftMonth(date, delta) {
+    const result = new Date(date);
+    result.setUTCDate(1);
+    result.setUTCMonth(result.getUTCMonth() + delta);
+    return result;
+  }
+
+  function showBreakdown() {
+    const summary = index?.getDay(selected);
+    const prompt = month ? 'Select a day to filter the map and see counts by satellite.' : 'Load observations to populate the calendar.';
+    if (!summary) {
+      breakdown.replaceChildren(make('p', prompt));
+      return;
+    }
+    const fullDate = dayLabel.format(selected * DAY_MS);
+    const title = make('strong', `${fullDate} UTC · ${numberLabel.format(summary.total)} observations`);
+    const list = make('dl', '', 'calendar-satellites');
+    for (const [i, name] of SATELLITES.entries()) {
+      const entry = make('div');
+      entry.dataset.satellite = String(i);
+      entry.append(make('dt', name), make('dd', numberLabel.format(summary.bySatellite[i])));
+      list.append(entry);
+    }
+    breakdown.replaceChildren(title, list);
+  }
+
+  function select(day) {
+    picks.get(selected)?.setAttribute('aria-pressed', 'false');
+    selected = day;
+    picks.get(selected)?.setAttribute('aria-pressed', 'true');
+    showBreakdown();
+  }
+
+  function render() {
+    body.replaceChildren();
+    picks.clear();
+    table.hidden = !month;
+    prev.disabled = !month || month.getTime() / DAY_MS <= index.firstDay;
+    next.disabled = !month || shiftMonth(month, 1).getTime() / DAY_MS > index.lastDay;
+    label.textContent = month ? monthLabel.format(month) : 'No dates loaded';
+    if (month) {
+      const first = month.getTime() / DAY_MS;
+      const end = shiftMonth(month, 1).getTime() / DAY_MS;
+      const start = first - (month.getUTCDay() + 6) % 7;
+      const summaries = new Map();
+      let maxCount = 0;
+      for (let day = first; day < end; day++) {
+        const summary = index.getDay(day);
+        if (!summary) continue;
+        summaries.set(day, summary);
+        maxCount = Math.max(maxCount, summary.total);
+      }
+      for (let week = start; week < end; week += 7) {
+        const row = body.insertRow();
+        for (let day = week; day < week + 7; day++) {
+          const cell = row.insertCell();
+          if (day < first || day >= end) continue;
+          const date = new Date(day * DAY_MS);
+          const summary = summaries.get(day);
+          const number = date.getUTCDate();
+          if (!summary) {
+            cell.className = 'calendar-outside';
+            cell.append(make('span', String(number)));
+            continue;
+          }
+          const pick = button('', 'calendar-day');
+          const count = summary.total;
+          const intensity = count === 0 ? 0 : Math.ceil(4 * Math.log1p(count) / Math.log1p(maxCount));
+          pick.dataset.intensity = String(intensity);
+          const description = `${dayLabel.format(date)} UTC, ${numberLabel.format(count)} observations`;
+          pick.title = description;
+          pick.setAttribute('aria-label', description);
+          pick.setAttribute('aria-pressed', String(day === selected));
+          pick.append(make('span', String(number), 'calendar-day-number'),
+            make('strong', compactCount.format(count), 'calendar-count'));
+          pick.addEventListener('click', () => {
+            select(day);
+            onSelectDay({start: summary.start, endExclusive: summary.endExclusive});
+          });
+          picks.set(day, pick);
+          cell.append(pick);
+        }
+      }
+    }
+    showBreakdown();
+  }
+
+  prev.addEventListener('click', () => { if (!prev.disabled) { month = shiftMonth(month, -1); render(); } });
+  next.addEventListener('click', () => { if (!next.disabled) { month = shiftMonth(month, 1); render(); } });
+  render();
+  return {
+    setIndex(nextIndex, {demo = false} = {}) {
+      index = nextIndex;
+      selected = undefined;
+      month = Number.isFinite(index.firstDay) && index.firstDay <= index.lastDay
+        ? shiftMonth(new Date(index.firstDay * DAY_MS), 0) : undefined;
+      dataset.textContent = demo ? 'Illustrative demo' : 'Loaded dataset';
+      dataset.dataset.demo = String(demo);
+      note.textContent = 'Unique observations by UTC day. Darker cells show more observations within the month.';
+      render();
+    },
+    setRange(start, end) {
+      const day = Math.floor(start / DAY_MS);
+      const summary = index?.getDay(day);
+      const match = summary && Date.parse(summary.start) === start && Date.parse(summary.endExclusive) === end;
+      const nextDay = match ? day : undefined;
+      if (nextDay === selected) return;
+      if (match && !picks.has(day)) {
+        selected = day;
+        month = shiftMonth(new Date(day * DAY_MS), 0);
+        render();
+      } else {
+        select(nextDay);
+      }
+    },
+  };
+}
+return {indexObservations, mountCalendar};
+})();
+
 // Capture the original UI before imported data or transient controls change it.
 window.__originalDocument='<!doctype html>\n'+document.documentElement.outerHTML;
+const calendar = mountCalendar($('observationCalendar'), {
+ onSelectDay({start, endExclusive}) {
+  $('startDate').value = isoTime(Date.parse(start) / 1000);
+  $('endDate').value = isoTime(Date.parse(endExclusive) / 1000);
+  $('timeMode').value = 'all';
+  $('applyDates').click();
+ }
+});
 bindFirmsUpload();
 try{renderers.push(new View('2d'),new View('3d'));bindUI();demo()}catch(error){status(error.message,true);$('inspectorBody').textContent=error.message}
 window.__viewer={get state(){return {nodeCount,edgeCount,start,end,cutoff,low,selected,isDemo}},get renderers(){return renderers},setTime,chooseFiles,applyDataset,edgeVisible,nodeVisible,select(value){selected=value;showInspector();requestDraw(false)},demo};
