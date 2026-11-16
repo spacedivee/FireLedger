@@ -66,6 +66,15 @@ Use **Focus a slice** to isolate a candidate. **Find a slice** jumps to an eligi
 
 ![Completed area measurement with its total and the View this area button](docs/images/measure.png)
 
+## Team
+
+- David Dajbog
+- Zhuoxuan Ma
+- Sami Alex Benhadid
+- Ariya Monfaredneirizi
+- Ethan Pei
+- Ryan Njoumene
+
 ## Data and map credits
 
 - Fire observations and satellite products come from [NASA FIRMS](https://firms.modaps.eosdis.nasa.gov/).
